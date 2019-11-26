@@ -1062,9 +1062,9 @@ function newClient () {
 	
 	echo ""
 	read -p "Voulez-vous enregister une adresse IP statique pour ce client ? [y/N]" choix_static_ip
-	if [[$choix_static_ip =~ [yYoO] ]]; then
-                until [[ "$STATIC_IP" =~ ^10.8.0.(25[0–5]|2[0–4][0–9]|[01]?[0–9][0–9]?)$ ]]; do
-                        read -rp "Adresse IP ? (10.8.0.0/24)" -e -i 1 STATIC_IP
+	if [[ $choix_static_ip =~ [yYoO] ]]; then
+                until [[ "$STATIC_IP" =~ ^10.8.0.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+                        read -rp "Adresse IP ? (10.8.0.0/24): " STATIC_IP
                 done
                 cat > /etc/openvpn/ccd/$CLIENT <<<FIN
                 ifconfig-push $STATIC_IP 255.255.255.0
