@@ -1101,7 +1101,7 @@ function revokeClient () {
 	./easyrsa --batch revoke "$CLIENT"
 	EASYRSA_CRL_DAYS=3650 ./easyrsa gen-crl
 	# Cleanup
-	if [[ -f "/etc/openvpn/ccd/$CLIENT" ]] && rm -f "/etc/openvpn/ccd/$CLIENT"
+	if [[ -f "/etc/openvpn/ccd/$CLIENT" ]]; then rm -f "/etc/openvpn/ccd/$CLIENT"; fi
 	rm -f "pki/reqs/$CLIENT.req"
 	rm -f "pki/private/$CLIENT.key"
 	rm -f "pki/issued/$CLIENT.crt"
