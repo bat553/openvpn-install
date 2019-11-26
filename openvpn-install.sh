@@ -1059,7 +1059,19 @@ function newClient () {
 			;;
 		esac
 	} >> "$homeDir/$CLIENT.ovpn"
-
+	
+	echo ""
+	read -p "Voulez-vous enregister une adresse IP statique pour ce client ? [y/N]" choix_static_ip
+	case $choix_static_ip in
+	 [yYoO]*) 
+	 	until [[ "$STATIC_IP" =~ ^10.8.0.(25[0–5]|2[0–4][0–9]|[01]?[0–9][0–9]?)$]]; do
+			read -rp "Adresse IP ? (10.8.0.0/24)" -e -i 1 STATIC_IP
+		done
+		cat > /etc/openvpn/ccd/$CLIENT <<<FIN
+		ifconfig-push $STATIC_IP 255.255.255.0
+FIN
+		echo 'Ip statique ajoutée avec succès !'
+		
 	echo ""
 	echo "Client $CLIENT added, the configuration file is available at $homeDir/$CLIENT.ovpn."
 	echo "Download the .ovpn file and import it in your OpenVPN client."
