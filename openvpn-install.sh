@@ -1066,7 +1066,7 @@ function newClient () {
                 until [[ "$STATIC_IP" =~ ^10.8.0.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
                         read -rp "Adresse IP ? (10.8.0.0/24): " STATIC_IP
                 done
-                cat > /etc/openvpn/ccd/$CLIENT <<<FIN
+                cat > /etc/openvpn/ccd/$CLIENT <<FIN
                 ifconfig-push $STATIC_IP 255.255.255.0
 FIN
                 echo 'Ip statique ajoutée avec succès !'
