@@ -741,52 +741,53 @@ ifconfig-pool-persist ipp.txt" >> /etc/openvpn/server.conf
 			done
 		;;
 		2)
-			echo 'push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/server.conf
 		;;
 		3) # Cloudflare
-			echo 'push "dhcp-option DNS 1.0.0.1"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 1.1.1.1"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 1.0.0.1"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 1.1.1.1"' >> /etc/openvpn/server.conf
 		;;
 		4) # Quad9
-			echo 'push "dhcp-option DNS 9.9.9.9"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 149.112.112.112"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 9.9.9.9"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 149.112.112.112"' >> /etc/openvpn/server.conf
 		;;
 		5) # Quad9 uncensored
-			echo 'push "dhcp-option DNS 9.9.9.10"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 149.112.112.10"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 9.9.9.10"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 149.112.112.10"' >> /etc/openvpn/server.conf
 		;;
 		6) # FDN
-			echo 'push "dhcp-option DNS 80.67.169.40"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 80.67.169.12"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 80.67.169.40"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 80.67.169.12"' >> /etc/openvpn/server.conf
 		;;
 		7) # DNS.WATCH
-			echo 'push "dhcp-option DNS 84.200.69.80"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 84.200.70.40"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 84.200.69.80"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 84.200.70.40"' >> /etc/openvpn/server.conf
 		;;
 		8) # OpenDNS
-			echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/server.conf
 		;;
 		9) # Google
-			echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/server.conf
 		;;
 		10) # Yandex Basic
-			echo 'push "dhcp-option DNS 77.88.8.8"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 77.88.8.1"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 77.88.8.8"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 77.88.8.1"' >> /etc/openvpn/server.conf
 		;;
 		11) # AdGuard DNS
-			echo 'push "dhcp-option DNS 176.103.130.130"' >> /etc/openvpn/server.conf
-			echo 'push "dhcp-option DNS 176.103.130.131"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 176.103.130.130"' >> /etc/openvpn/server.conf
+			echo '#push "dhcp-option DNS 176.103.130.131"' >> /etc/openvpn/server.conf
 		;;
 		12) # Custom DNS
-		echo "push \"dhcp-option DNS $DNS1\"" >> /etc/openvpn/server.conf
+		echo "#push \"dhcp-option DNS $DNS1\"" >> /etc/openvpn/server.conf
+		echo "push \"route 10.8.0.0 255.255.255.0\"" >> /etc/openvpn/server.conf
 		if [[ "$DNS2" != "" ]]; then
-			echo "push \"dhcp-option DNS $DNS2\"" >> /etc/openvpn/server.conf
+			echo "#push \"dhcp-option DNS $DNS2\"" >> /etc/openvpn/server.conf
 		fi
 		;;
 	esac
-	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.conf
+	echo '#push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.conf
 
 	# IPv6 network settings if needed
 	if [[ "$IPV6_SUPPORT" = 'y' ]]; then
@@ -828,10 +829,13 @@ tls-server
 tls-version-min 1.2
 tls-cipher $CC_CIPHER
 status /var/log/openvpn/status.log
-verb 3" >> /etc/openvpn/server.conf
+verb 3
+client-config-dir ccd" >> /etc/openvpn/server.conf
 
 	# Create log dir
 	mkdir -p /var/log/openvpn
+	# Create ccd dir
+	mkdir -p /etc/openvpn/ccd
 
 	# Enable routing
 	echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.d/20-openvpn.conf
