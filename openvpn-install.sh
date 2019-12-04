@@ -544,13 +544,15 @@ zone "cimvision.local" {
 };
 FIN
 
-echo "include /etc/bind/cimvision.local.hosts" >> /etc/bind/named.conf.local
+cat >>/etc/bind/named.conf.local <<FIN
+include "/etc/bind/cimvision.local.hosts";
+FIN
 
 mkdir /etc/bind/dynamic
 chown bind /etc/bind/dynamic
 
 cat >/etc/bind/dynamic/db.cimvision <<FIN
-$TTL    30
+\$TTL    30
 @       IN      SOA     cimvision.local. ciminfo.ciminfo.fr. (
                               1         ; Serial
                          604800         ; Refresh
