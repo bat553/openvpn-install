@@ -36,6 +36,7 @@ function checkOS () {
 					exit 1
 				fi
 			fi
+		fi
 	else
 		echo "Looks like you aren't running this installer on a Debian system"
 		exit 1
@@ -560,6 +561,9 @@ $TTL    30
 		NS      localhost.
 openvpn 	A 	10.8.0.1
 FIN
+
+systemctl enable bind9
+systemctl start bind9
 
 if [[ $COMPRESSION_ENABLED == "y"  ]]; then
 	echo "compress $COMPRESSION_ALG" >> /etc/openvpn/client-template.txt
