@@ -534,7 +534,7 @@ mkdir /etc/bind/dynamic
 chown bind /etc/bind/dynamic
 
 cat >/etc/bind/dynamic/db.cimvision <<FIN
-\$TTL    1800 #30 minutes
+\$TTL    1800 ;; 30 minutes
 @       IN      SOA     cimvision.local. ciminfo.ciminfo.fr. (
                               1         ; Serial
                          604800         ; Refresh
