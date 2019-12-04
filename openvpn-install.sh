@@ -896,13 +896,15 @@ client-config-dir ccd" >> /etc/openvpn/server.conf
 
 	# Add iptables rules in two scripts
 	mkdir /etc/iptables
-
+	
+	read -p "IP check_mk master :" CME_IP
+	
 	# Script to add rules
 	echo "#!/bin/sh
-iptables -t nat -I POSTROUTING 1 -s 10.8.0.0/24 -o $NIC -j MASQUERADE
 iptables -I INPUT 1 -i tun0 -j ACCEPT
-iptables -I FORWARD 1 -i $NIC -o tun0 -j ACCEPT
-iptables -I FORWARD 1 -i tun0 -o $NIC -j ACCEPT
+iptables -A FORWARD 1 -d $CME_IP -i tun0 -o tun0 -j ACCEPT
+iptables -A FORWARD 1 -s $CME_IP -i tun0 -o tun0 -j ACCEPT
+iptables -A FORWARD 1 -o tun0 -i tun0 -j DROP
 iptables -I INPUT 1 -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT" > /etc/iptables/add-openvpn-rules.sh
 
 	if [[ "$IPV6_SUPPORT" = 'y' ]]; then
@@ -914,10 +916,10 @@ ip6tables -I FORWARD 1 -i tun0 -o $NIC -j ACCEPT" >> /etc/iptables/add-openvpn-r
 
 	# Script to remove rules
 	echo "#!/bin/sh
-iptables -t nat -D POSTROUTING -s 10.8.0.0/24 -o $NIC -j MASQUERADE
-iptables -D INPUT -i tun0 -j ACCEPT
-iptables -D FORWARD -i $NIC -o tun0 -j ACCEPT
-iptables -D FORWARD -i tun0 -o $NIC -j ACCEPT
+iptables -I INPUT 1 -i tun0 -j ACCEPT
+iptables -D FORWARD -d $CME_IP -i tun0 -o tun0 -j ACCEPT
+iptables -D FORWARD -s $CME_IP -i tun0 -o tun0 -j ACCEPT
+iptables -D FORWARD -o tun0 -i tun0 -j DROP
 iptables -D INPUT -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT" > /etc/iptables/rm-openvpn-rules.sh
 
 	if [[ "$IPV6_SUPPORT" = 'y' ]]; then
