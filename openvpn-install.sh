@@ -465,14 +465,14 @@ client-config-dir ccd" >> /etc/openvpn/server.conf
 	# Script to add rules
 	echo "#!/bin/sh
 iptables -I INPUT 1 -i tun0 -j ACCEPT
-iptables -A FORWARD 1 -d $CME_IP -i tun0 -o tun0 -j ACCEPT
-iptables -A FORWARD 1 -s $CME_IP -i tun0 -o tun0 -j ACCEPT
-iptables -A FORWARD 1 -o tun0 -i tun0 -j DROP
+iptables -I FORWARD 1 -d $CME_IP -i tun0 -o tun0 -j ACCEPT
+iptables -I FORWARD 1 -s $CME_IP -i tun0 -o tun0 -j ACCEPT
+iptables -I FORWARD 1 -o tun0 -i tun0 -j DROP
 iptables -I INPUT 1 -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT" > /etc/iptables/add-openvpn-rules.sh
 
 	# Script to remove rules
 	echo "#!/bin/sh
-iptables -I INPUT 1 -i tun0 -j ACCEPT
+iptables -D INPUT -i tun0 -j ACCEPT
 iptables -D FORWARD -d $CME_IP -i tun0 -o tun0 -j ACCEPT
 iptables -D FORWARD -s $CME_IP -i tun0 -o tun0 -j ACCEPT
 iptables -D FORWARD -o tun0 -i tun0 -j DROP
