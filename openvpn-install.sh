@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Secure OpenVPN server installer for Debian, Ubuntu, CentOS, Amazon Linux 2, Fedora and Arch Linux
+# Secure OpenVPN server installer for Debian
+# CUSTOM CIMINFO
 # https://github.com/angristan/openvpn-install
 
 function isRoot () {
@@ -264,7 +265,7 @@ function installOpenVPN () {
 			apt-get update
 		fi
 		# Ubuntu > 16.04 and Debian > 8 have OpenVPN >= 2.4 without the need of a third party repository.
-		apt-get install -y openvpn iptables openssl wget ca-certificates curl bind9
+		apt-get install -y openvpn iptables openssl wget ca-certificates curl bind9 dnsutils
 	else 
 		exit 1
 	fi
@@ -646,16 +647,20 @@ function newClient () {
 	} >> "$homeDir/$CLIENT.ovpn"
 	
 	echo ""
-	read -p "Voulez-vous enregister une adresse IP statique pour ce client ? [y/N]" choix_static_ip
-	if [[ $choix_static_ip =~ [yYoO] ]]; then
-                until [[ "$STATIC_IP" =~ ^10.8.0.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
-                        read -rp "Adresse IP ? (10.8.0.0/24): " STATIC_IP
-                done
-                cat > /etc/openvpn/ccd/$CLIENT <<FIN
-                ifconfig-push $STATIC_IP 255.255.255.0
+	until [[ "$STATIC_IP" =~ ^10.8.0.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$ ]]; do
+		read -rp "Adresse IP statique ? (10.8.0.0/24): " -i "10.8.0." STATIC_IP
+	done
+	cat > /etc/openvpn/ccd/$CLIENT <<FIN
+	ifconfig-push $STATIC_IP 255.255.255.0
 FIN
-                echo 'Ip statique ajoutée avec succès !'
-        fi
+	nsupdate <<FIN
+server 127.0.0.1
+zone cimvision.local
+update add $CLIENT.cimvision.local. 30 A $STATIC_IP
+send
+FIN
+
+	echo 'Ip statique et enregistrement DNS ajouté avec succès !'
 
 	echo ""
 	echo "Client $CLIENT added, the configuration file is available at $homeDir/$CLIENT.ovpn."
@@ -696,6 +701,12 @@ function revokeClient () {
 	find /home/ -maxdepth 2 -name "$CLIENT.ovpn" -delete
 	rm -f "/root/$CLIENT.ovpn"
 	sed -i "s|^$CLIENT,.*||" /etc/openvpn/ipp.txt
+	nsupdate <<FIN
+server 127.0.0.1
+zone cimvision.local
+update remove $CLIENT.cimvision.local. 
+send
+FIN
 
 	echo ""
 	echo "Certificate for client $CLIENT revoked."
