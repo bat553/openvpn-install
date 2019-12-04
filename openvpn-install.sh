@@ -178,25 +178,7 @@ function installQuestions () {
 			read -rp "Public IPv4 address or hostname: " -e ENDPOINT
 		done
 	fi
-
-	echo ""
-	echo "Checking for IPv6 connectivity..."
-	echo ""
-	# "ping6" and "ping -6" availability varies depending on the distribution
-	if type ping6 > /dev/null 2>&1; then
-		PING6="ping6 -c3 ipv6.google.com > /dev/null 2>&1"
-	else
-		PING6="ping -6 -c3 ipv6.google.com > /dev/null 2>&1"
-	fi
-	if eval "$PING6"; then
-		echo "Your host appears to have IPv6 connectivity."
-		SUGGESTION="y"
-	else
-		echo "Your host does not appear to have IPv6 connectivity."
-		SUGGESTION="n"
-	fi
-	echo ""
-	# Ask the user if they want to enable IPv6 regardless its availability.
+	
 	IPV6_SUPPORT="n"
 	
 	PORT="1194"
@@ -464,18 +446,18 @@ client-config-dir ccd" >> /etc/openvpn/server.conf
 	
 	# Script to add rules
 	echo "#!/bin/sh
+iptables -I INPUT 1 -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT
 iptables -I INPUT 1 -i tun0 -j ACCEPT
-iptables -I FORWARD 1 -d $CME_IP -i tun0 -o tun0 -j ACCEPT
-iptables -I FORWARD 1 -s $CME_IP -i tun0 -o tun0 -j ACCEPT
 iptables -I FORWARD 1 -o tun0 -i tun0 -j DROP
-iptables -I INPUT 1 -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT" > /etc/iptables/add-openvpn-rules.sh
+iptables -I FORWARD 1 -d $CME_IP -i tun0 -o tun0 -j ACCEPT
+iptables -I FORWARD 1 -s $CME_IP -i tun0 -o tun0 -j ACCEPT" > /etc/iptables/add-openvpn-rules.sh
 
 	# Script to remove rules
 	echo "#!/bin/sh
 iptables -D INPUT -i tun0 -j ACCEPT
+iptables -D FORWARD -o tun0 -i tun0 -j DROP
 iptables -D FORWARD -d $CME_IP -i tun0 -o tun0 -j ACCEPT
 iptables -D FORWARD -s $CME_IP -i tun0 -o tun0 -j ACCEPT
-iptables -D FORWARD -o tun0 -i tun0 -j DROP
 iptables -D INPUT -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT" > /etc/iptables/rm-openvpn-rules.sh
 
 	chmod +x /etc/iptables/add-openvpn-rules.sh
