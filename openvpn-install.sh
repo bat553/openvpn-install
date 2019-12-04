@@ -534,7 +534,7 @@ mkdir /etc/bind/dynamic
 chown bind /etc/bind/dynamic
 
 cat >/etc/bind/dynamic/db.cimvision <<FIN
-\$TTL    30
+\$TTL    1800 #30 minutes
 @       IN      SOA     cimvision.local. ciminfo.ciminfo.fr. (
                               1         ; Serial
                          604800         ; Refresh
@@ -625,7 +625,7 @@ FIN
 	nsupdate <<FIN
 server 127.0.0.1
 zone cimvision.local
-update add $CLIENT.cimvision.local. 30 A $STATIC_IP
+update add $CLIENT.cimvision.local. 1800 A $STATIC_IP
 send
 FIN
 
