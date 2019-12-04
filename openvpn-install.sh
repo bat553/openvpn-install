@@ -35,51 +35,8 @@ function checkOS () {
 					exit 1
 				fi
 			fi
-		elif [[ "$ID" == "ubuntu" ]];then
-			OS="ubuntu"
-			if [[ ! $VERSION_ID =~ (16.04|18.04|19.04) ]]; then
-				echo "⚠️ Your version of Ubuntu is not supported."
-				echo ""
-				echo "However, if you're using Ubuntu > 17 or beta, then you can continue."
-				echo "Keep in mind they are not supported, though."
-				echo ""
-				until [[ $CONTINUE =~ (y|n) ]]; do
-					read -rp "Continue? [y/n]: " -e CONTINUE
-				done
-				if [[ "$CONTINUE" = "n" ]]; then
-					exit 1
-				fi
-			fi
-		fi
-	elif [[ -e /etc/system-release ]]; then
-		# shellcheck disable=SC1091
-		source /etc/os-release
-		if [[ "$ID" = "centos" ]]; then
-			OS="centos"
-			if [[ ! $VERSION_ID =~ (7|8) ]]; then
-				echo "⚠️ Your version of CentOS is not supported."
-				echo ""
-				echo "The script only support CentOS 7."
-				echo ""
-				exit 1
-			fi
-		fi
-		if [[ "$ID" = "amzn" ]]; then
-			OS="amzn"
-			if [[ ! $VERSION_ID == "2" ]]; then
-				echo "⚠️ Your version of Amazon Linux is not supported."
-				echo ""
-				echo "The script only support Amazon Linux 2."
-				echo ""
-				exit 1
-			fi
-		fi
-	elif [[ -e /etc/fedora-release ]]; then
-		OS=fedora
-	elif [[ -e /etc/arch-release ]]; then
-		OS=arch
 	else
-		echo "Looks like you aren't running this installer on a Debian, Ubuntu, Fedora, CentOS, Amazon Linux 2 or Arch Linux system"
+		echo "Looks like you aren't running this installer on a Debian system"
 		exit 1
 	fi
 }
@@ -308,17 +265,8 @@ function installOpenVPN () {
 		fi
 		# Ubuntu > 16.04 and Debian > 8 have OpenVPN >= 2.4 without the need of a third party repository.
 		apt-get install -y openvpn iptables openssl wget ca-certificates curl bind9
-	elif [[ "$OS" = 'centos' ]]; then
-		yum install -y epel-release
-		yum install -y openvpn iptables openssl wget ca-certificates curl tar
-	elif [[ "$OS" = 'amzn' ]]; then
-		amazon-linux-extras install -y epel
-		yum install -y openvpn iptables openssl wget ca-certificates curl
-	elif [[ "$OS" = 'fedora' ]]; then
-		dnf install -y openvpn iptables openssl wget ca-certificates curl
-	elif [[ "$OS" = 'arch' ]]; then
-		# Install required dependencies and upgrade the system
-		pacman --needed --noconfirm -Syu openvpn iptables openssl wget ca-certificates curl
+	else 
+		exit 1
 	fi
 
 	# Find out if the machine uses nogroup or nobody for the permissionless group
@@ -353,8 +301,8 @@ function installOpenVPN () {
 	esac
 
 	# Generate a random, alphanumeric identifier of 16 characters for CN and one for server name
-	SERVER_CN="cn_$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)"
-	SERVER_NAME="server_$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)"
+	SERVER_CN="cn_cimvision_$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)"
+	SERVER_NAME="server_cimvision_$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)"
 	echo "set_var EASYRSA_REQ_CN $SERVER_CN" >> vars
 
 	# Create the PKI, set up the CA, the DH params and the server certificate
@@ -412,82 +360,6 @@ topology subnet
 server 10.8.0.0 255.255.255.0
 ifconfig-pool-persist ipp.txt" >> /etc/openvpn/server.conf
 
-	# DNS resolvers
-	case $DNS in
-		1)
-			# Locate the proper resolv.conf
-			# Needed for systems running systemd-resolved
-			if grep -q "127.0.0.53" "/etc/resolv.conf"; then
-				RESOLVCONF='/run/systemd/resolve/resolv.conf'
-			else
-				RESOLVCONF='/etc/resolv.conf'
-			fi
-			# Obtain the resolvers from resolv.conf and use them for OpenVPN
-			grep -v '#' $RESOLVCONF | grep 'nameserver' | grep -E -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | while read -r line; do
-				echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/server.conf
-			done
-		;;
-		2)
-			echo '#push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/server.conf
-		;;
-		3) # Cloudflare
-			echo '#push "dhcp-option DNS 1.0.0.1"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 1.1.1.1"' >> /etc/openvpn/server.conf
-		;;
-		4) # Quad9
-			echo '#push "dhcp-option DNS 9.9.9.9"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 149.112.112.112"' >> /etc/openvpn/server.conf
-		;;
-		5) # Quad9 uncensored
-			echo '#push "dhcp-option DNS 9.9.9.10"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 149.112.112.10"' >> /etc/openvpn/server.conf
-		;;
-		6) # FDN
-			echo '#push "dhcp-option DNS 80.67.169.40"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 80.67.169.12"' >> /etc/openvpn/server.conf
-		;;
-		7) # DNS.WATCH
-			echo '#push "dhcp-option DNS 84.200.69.80"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 84.200.70.40"' >> /etc/openvpn/server.conf
-		;;
-		8) # OpenDNS
-			echo '#push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/server.conf
-		;;
-		9) # Google
-			echo '#push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/server.conf
-		;;
-		10) # Yandex Basic
-			echo '#push "dhcp-option DNS 77.88.8.8"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 77.88.8.1"' >> /etc/openvpn/server.conf
-		;;
-		11) # AdGuard DNS
-			echo '#push "dhcp-option DNS 176.103.130.130"' >> /etc/openvpn/server.conf
-			echo '#push "dhcp-option DNS 176.103.130.131"' >> /etc/openvpn/server.conf
-		;;
-		12) # Custom DNS
-		echo "#push \"dhcp-option DNS $DNS1\"" >> /etc/openvpn/server.conf
-		echo "push \"route 10.8.0.0 255.255.255.0\"" >> /etc/openvpn/server.conf
-		if [[ "$DNS2" != "" ]]; then
-			echo "#push \"dhcp-option DNS $DNS2\"" >> /etc/openvpn/server.conf
-		fi
-		;;
-	esac
-	echo '#push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.conf
-
-	# IPv6 network settings if needed
-	if [[ "$IPV6_SUPPORT" = 'y' ]]; then
-		echo 'server-ipv6 fd42:42:42:42::/112
-tun-ipv6
-push tun-ipv6
-push "route-ipv6 2000::/3"
-push "redirect-gateway ipv6"' >> /etc/openvpn/server.conf
-	fi
-
-	if [[ $COMPRESSION_ENABLED == "y"  ]]; then
-		echo "compress $COMPRESSION_ALG" >> /etc/openvpn/server.conf
-	fi
 
 	if [[ $DH_TYPE == "1" ]]; then
 		echo "dh none" >> /etc/openvpn/server.conf
@@ -515,6 +387,8 @@ ncp-ciphers $CIPHER
 tls-server
 tls-version-min 1.2
 tls-cipher $CC_CIPHER
+push \"dhcp-option DNS 10.8.0.1\"
+push \"route 10.8.0.0 255.255.255.0\"
 status /var/log/openvpn/status.log
 verb 3
 client-config-dir ccd" >> /etc/openvpn/server.conf
@@ -594,13 +468,6 @@ iptables -A FORWARD 1 -s $CME_IP -i tun0 -o tun0 -j ACCEPT
 iptables -A FORWARD 1 -o tun0 -i tun0 -j DROP
 iptables -I INPUT 1 -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT" > /etc/iptables/add-openvpn-rules.sh
 
-	if [[ "$IPV6_SUPPORT" = 'y' ]]; then
-		echo "ip6tables -t nat -I POSTROUTING 1 -s fd42:42:42:42::/112 -o $NIC -j MASQUERADE
-ip6tables -I INPUT 1 -i tun0 -j ACCEPT
-ip6tables -I FORWARD 1 -i $NIC -o tun0 -j ACCEPT
-ip6tables -I FORWARD 1 -i tun0 -o $NIC -j ACCEPT" >> /etc/iptables/add-openvpn-rules.sh
-	fi
-
 	# Script to remove rules
 	echo "#!/bin/sh
 iptables -I INPUT 1 -i tun0 -j ACCEPT
@@ -608,13 +475,6 @@ iptables -D FORWARD -d $CME_IP -i tun0 -o tun0 -j ACCEPT
 iptables -D FORWARD -s $CME_IP -i tun0 -o tun0 -j ACCEPT
 iptables -D FORWARD -o tun0 -i tun0 -j DROP
 iptables -D INPUT -i $NIC -p $PROTOCOL --dport $PORT -j ACCEPT" > /etc/iptables/rm-openvpn-rules.sh
-
-	if [[ "$IPV6_SUPPORT" = 'y' ]]; then
-		echo "ip6tables -t nat -D POSTROUTING -s fd42:42:42:42::/112 -o $NIC -j MASQUERADE
-ip6tables -D INPUT -i tun0 -j ACCEPT
-ip6tables -D FORWARD -i $NIC -o tun0 -j ACCEPT
-ip6tables -D FORWARD -i tun0 -o $NIC -j ACCEPT" >> /etc/iptables/rm-openvpn-rules.sh
-	fi
 
 	chmod +x /etc/iptables/add-openvpn-rules.sh
 	chmod +x /etc/iptables/rm-openvpn-rules.sh
