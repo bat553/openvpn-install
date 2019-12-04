@@ -620,7 +620,7 @@ function installOpenVPN () {
 			apt-get update
 		fi
 		# Ubuntu > 16.04 and Debian > 8 have OpenVPN >= 2.4 without the need of a third party repository.
-		apt-get install -y openvpn iptables openssl wget ca-certificates curl
+		apt-get install -y openvpn iptables openssl wget ca-certificates curl bind9
 	elif [[ "$OS" = 'centos' ]]; then
 		yum install -y epel-release
 		yum install -y openvpn iptables openssl wget ca-certificates curl tar
@@ -980,6 +980,38 @@ tls-version-min 1.2
 tls-cipher $CC_CIPHER
 setenv opt block-outside-dns # Prevent Windows 10 DNS leak
 verb 3" >> /etc/openvpn/client-template.txt
+
+echo "Configuration bind9"
+
+echo "domain cimvision.local
+search cimvision.local
+nameserver 127.0.0.1" > /etc/resolv.conf
+
+cat >/etc/bind/cimvision.local.hosts <<FIN 
+zone "cimvision.local" {
+        type master;
+        file "/etc/bind/dynamic/db.cimvision";
+        allow-update {127.0.0.1;};
+};
+FIN
+
+echo "include /etc/bind/cimvision.local.hosts" >> /etc/bind/named.conf.local
+
+mkdir /etc/bind/dynamic
+chown bind /etc/bind/dynamic
+
+cat >/etc/bind/dynamic/db.cimvision <<FIN
+$TTL    30
+@       IN      SOA     cimvision.local. ciminfo.ciminfo.fr. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+		NS      localhost.
+openvpn 	A 	10.8.0.1
+FIN
 
 if [[ $COMPRESSION_ENABLED == "y"  ]]; then
 	echo "compress $COMPRESSION_ALG" >> /etc/openvpn/client-template.txt
